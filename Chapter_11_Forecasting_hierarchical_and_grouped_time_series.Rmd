@@ -1,0 +1,10 @@
+---
+title: "Chapter 11: The forecaster’s toolbox"
+author: "Ankit Gupta"
+date: '27/12/2023'
+output: 
+  pdf_document:
+    extra_dependencies: ['amsmath']
+    latex_engine: xelatex
+  word_document: default
+--- 
