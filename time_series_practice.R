@@ -115,20 +115,12 @@ new_production |> ACF(Beer,lag_max = 9) |>autoplot()
 
 new_production |> ACF(Beer) |> autoplot()
 
-print_retail <- aus_retail |>
-  filter(Industry == 'Newspaper and book retailing') |>
-  group_by(Industry) |>
-  index_by(Year = year(Month)) |>
-  summarise(Turnover=sum(Turnover))
-aus_economy <- global_economy |>
-  filter(Code == 'AUS')
-print_retail |>
-  left_join(aus_economy, by= 'Year') |>
-  mutate(Adjusted_turnover = Turnover/CPI*100) |>
-  pivot_longer(c(Turnover,Adjusted_turnover),values_to = 'Turnover') |>
-  mutate(name=factor(name,levels=c('Turnover','Adjusted_Turnover'))) |>
-  ggplot(aes(x=Year, y= Turnover))+
-  geom_line()+
-  facet_grid(name ~ ., scales= "free_y")+
-  labs(title = "Turnover: Australian print media industry",y="$AU")
+# Trend and Seasonality in ACF Plots
 
+retail <- us_employment |>
+  filter(Title=="Retail Trade",year(Month) >= 1980)
+retail |> autoplot(Employed)
+
+retail |>
+  ACF(Employed, lag_max = 48) |>
+  autoplot()
