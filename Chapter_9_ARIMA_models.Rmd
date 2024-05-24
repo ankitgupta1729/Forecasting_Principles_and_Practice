@@ -2201,7 +2201,7 @@ So, point forecast for $h=2$
 $\hat{y}_{T+1|T} = (1+\hat{\phi_1})y_{T} - (\hat{\phi_1}-\hat{\phi_2})y_{T-1}- (\hat{\phi_2}-\hat{\phi_3})y_{T-2} -\hat{\phi_3}y_{T-3}+\hat{\theta_1}e_{T}$    
            
     
-Now, similary two step ahead,  
+Now, similarly two step ahead,  
   
    
 $y_{T+2} = (1+\hat{\phi_1})y_{T+1} - (\hat{\phi_1}-\hat{\phi_2})y_{T}- (\hat{\phi_2}-\hat{\phi_3})y_{T-1} -\hat{\phi_3}y_{T-2}+\epsilon_{T+2}+\hat{\theta_1}\epsilon_{T+1}$  

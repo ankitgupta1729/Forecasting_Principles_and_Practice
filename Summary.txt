@@ -1,0 +1,707 @@
+(1)
+
+All R examples in the book assume you have loaded the fpp3 package first.
+library(fpp3)
+## -- Attaching packages ---------------------------------------------- fpp3 0.5 --
+## v tibble 3.2.1 v tsibble 1.1.3
+## v dplyr 1.1.3 v tsibbledata 0.4.1
+## v tidyr 1.3.0 v feasts 0.3.1
+## v lubridate 1.9.3 v fable 0.3.3
+## v ggplot2 3.4.4 v fabletools 0.3.4
+
+(2)
+
+Forecasting is required in many situations:
+
+(i)  Deciding whether to build another power generation plant in the next five years requires forecasts of future demand;
+(ii) Stocking an inventory requires forecasts of stock requirements. 
+(iii)electricity demand -- factors:temperature
+(iv) Stock prices forecasing in financial time series
+(v)  Per capita income of an economy
+(vi) Brick/Beer Production
+(vii)weather forecasting
+
+(3) What is normally assumed is that the way in which the environment is changing will continue into the future
+
+(4) models- baseline: naive,seasonal naive,mean,drift
+
+(5) no historical data-- judgemental forecasting/qualitative forecasting
+
+(6) Forecasting is about predicting the future as accurately as possible, given all of the information available,
+ including historical data and knowledge of any future events that might impact the forecasts  
+
+(7) Most quantitative prediction problems use either time series data (collected at regular intervals over time)
+or cross-sectional data (collected at a single point in time). 
+
+(8) Predictor variables are often useful in time series
+forecasting. For example, suppose we wish to forecast the hourly electricity demand (ED) of a hot region
+during the summer period. A model with predictor variables might be of the form
+𝐸𝐷 = 𝑓(current temperature, strength of economy, population,time of day, day of week, error)
+𝐸𝐷𝑡+1 = 𝑓(𝐸𝐷𝑡, 𝐸𝐷𝑡−1, 𝐸𝐷𝑡−2, ..., 𝑒𝑟𝑟𝑜𝑟)
+or mixed (dynamic regression model)
+
+(9) The basic steps in a forecasting task:
+
+(A) Step 1: Problem definition
+(B) Step 2: Gathering information
+(C) Step 3: Exploratory data analysis
+(D) Step 4: Choosing and fitting models
+(E) Step 5: Using and evaluating a forecasting model
+
+(10) It is often useful to specify exactly what information we have used in calculating the forecast. Then we will
+write, for example, ̂𝑦𝑡|𝑡−1 to mean the forecast of 𝑦𝑡
+taking account of all previous observations (𝑦1, ..., 𝑦𝑡−1).
+Similarly, ̂𝑦𝑇 +ℎ|𝑇 means the forecast of 𝑦𝑇 +ℎ taking account of 𝑦1, ..., 𝑦𝑇(i.e., an h-step forecast taking
+account of all observations up to time 𝑇 )
+----------------------------------------------------------------------------------------------------------------
+EDA:
+
+(11) Yearly data means: frequency of observation is [1Y] i.e. 1 year 
+
+(12) mydata <- tsibble(year = 2015:2019, y=c(123,39,78,52,110),index = year) # creating tsibble object
+
+(13) In R, we use pipe symbols in 2 ways (in most ways both works in the same way) i.e. %>% and | >
+ 
+(14) We have a dataset “z” in which Month column is in string form () and so we have to convert it into tsibble
+object as:
+
+z |> mutate(Month=yearmonth(Month)) |> as_tsibble(index=Month)
+
+(15) 
+
+#Frequency --- Functions
+
+#Annual --- start:end
+#Quarterly --- yearquarter()
+#Monthly --- yearmonth()
+#Weekly --- yearweek()
+#Daily --- as_date(), ymd()
+#Sub-daily --- as_datetime(), ymd_hms()
+
+(16) 
+
+Example: Australian Pharmaseutical Benefits scheme dataset
+
+PBS |>
+filter(ATC2=="A10")|>
+select(Month,Concession,Type,Cost)|>
+summarise(TotalC=sum(Cost))|>
+mutate(Cost=TotalC/1e6)
+
+(17)
+
+We can use dplyr functions such as mutate(), filter(), select() and summarise() to work with
+tsibble objects
+
+(18) Time Plots:
+
+a10 |>
+autoplot(Cost) +
+labs(y="$ (millions)",title = "Australian antidiabetic drug sales")
+
+-- autoplot() is a smart in-built function under ggplot.
+
+a10 |>
+ggplot(aes(x=Month,y=Cost))+
+geom_point()
+
+-- This is useful if we have to observe the spikes at particular time.
+
+-- spikes at regular interval which shows the seasonal pattern
+
+-- trend (linear/non-linear): a long-term increase or decrease in the data
+
+--  Seasonal Patterns are of constant length whereas cyclic patterns are of variable length.
+
+(19) Season plots: gg_season() 
+
+x axis is seasonal period like quarters and levels are for each years
+
+(20) gg_subseries()
+
+A subseries plot is a plot that plots together as their own time series that each month/quarter/etc i.e. each
+season basically
+
+(21) Scatterplots
+
+ggplot(aes(x="Temperature",y="Electricity Demand"))+geom_point()+labs(y="",title="")
+
+(22) Correlation Coefficient
+
+It measures the extent of a linear relationship between two variables (y and x)
+
+ggpairs(columns=2:6)
+
+(23) Lag plots
+
+gg_lag(Beer,geom = "point")
+
+It produces a set of scatter plots which are shown above and labelled as lag 1 to lag 9. These plots show the
+beer data to lags of the beer data.
+
+-- The correlations associated with these scatterplots are called autocorrelations.
+
+(24) ACF(Beer,lag_max = 9)
+
+new_production |> ACF(Beer,lag_max = 9) |>autoplot()
+
+The ACF plot is known as correlogram.
+ 
+-- When data have a trend, the autocorrelations for small lags tend to be large and positive because
+values those are close together in time will also close together in values.
+
+-- When data are seasonal, the autocorrelations will be larger at the seasonal lags (i.e. at multiples of
+seasonal frequency).
+
+(25) White noise
+
+It is most boring time series. It is called white noise because it contains all the frequencies in the spectrum
+just like white light which contains all frequencies.
+
+In statistics, it is independent and identically distributed random values.
+
+It is an example of white noise. There is no particular pattern. It’s simply the random values.
+
+White noise data is uncorrelated across time with zero mean and constant variance. (Technically, we require
+independence as well)
+
+Blue line shows 95% critical values. So 5% of the time, even with white noise data, we can get spikes
+outside those limits but 95% of the time it stays within the limits.
+
+95% of all 𝑟𝑘 for white noise must lie within ±1.96/√T
+
+Time series that show no autocorrelation are called white noise.
+
+-------------------------------------------------------------------------------------------------------------------
+
+Time series decomposition
+
+(26) we usually combine the trend and cycle into a single
+trend-cycle component (often just called the trend for simplicity).
+
+(27) To control the variance, we do transformation: log,square-root,cube-root.
+
+(28) 𝑦𝑡 = 𝑓(𝑆𝑡, 𝑇𝑡, 𝑅𝑡)
+
+Additive decomposition: 𝑦𝑡 = 𝑆𝑡 + 𝑇𝑡 + 𝑅𝑡
+Multiplicative decomposition: 𝑦𝑡 = 𝑆𝑡 × 𝑇𝑡 × 𝑅�
+
+(29) Logs turn multiplicative relationship into an additive relationship:
+
+𝑦𝑡 = 𝑆𝑡 × 𝑇𝑡 × 𝑅𝑡
+→ log 𝑦𝑡 = log 𝑆𝑡 + log 𝑇𝑡 + log �
+
+(30) 
+
+dcmp <- us_retail_employment |>
+model(stl=STL(Employed))
+components(dcmp)
+
+Here the output is dable object which looks like a sibble but it is decomposition table. 
+
+(31)
+
+seasonally adjusted data given by
+$$y_t - S_t = T_t + R_t$$ (more wiggly trend)
+
+ So it is better to use trend-cycle component rather than seasonally adjusted data.
+
+(32) Classical Decomposition:
+
+-- an estimate of the trend component
+and to get an estimate of the trend component, we use moving averages.
+
+-- order = length of season or cycle removes seasonal pattern completely. So, if we have got daily data
+and we use the order=7 then it removes the seasonal pattern completely.
+
+-- Estimating the Seasonal Component
+
+• Seasonal index for each season is estimated as an average of the detrended series for that season of
+successive years.
+
+E.g. Take averages across all Januaries to get 𝑆
+
+(1) if your data is monthly. (Similarly if you have
+quarterly data, get average for each quarters)
+
+• If necessary, adjust the seasonal indices so that:
+
+–> For additive: 𝑆
+
+(1) + 𝑆(2) + ... + 𝑆(12) = 0
+
+–> For multiplicative: 𝑆
+(1) + 𝑆(2) + ... + 𝑆(12) = �
+
+(33) Choose additive or multiplicative depending on which gives the most stable components
+
+-- Not robust to outliers because it relies on outliers and averages are very sensitive to outliers
+
+(34) STL is always an additive decomposition.
+
+-- STL stands for Seasonal and Trend decomposition using Loess. Loess is a form of smoothing based on
+locally linear regressions ( locally linear estimation removes a bias term from the kernel estimator, that makes
+it have better behavior near the boundary of the x’s and smaller MSE everywhere.)
+( one nonparametric method is known as local linear regression (LLR). The idea of
+this method is that if f(·) has sufficient smoothness (say twice-differentiable), then the model
+will look linear in small regions of input-space.)
+
+-- will handle any type of seasonality not just monthly or quarterly data
+
+• Seasonal components are allowed to change over time and rate of change controlled by user i.e. how
+quickly it can be changed over time.
+
+• Smoothness of trend-cycle can also be controlled by user
+
+• Robust to outliers.
+
+us_retail_employment |>
+model(STL(Employed ~ season(window="periodic"))) |>  -- infinite window
+components() |>
+autoplot()
+
+us_retail_employment |>
+model(STL(Employed ~ season(window=9)+ trend(window=5))) |>
+components() |>
+autoplot() + labs()
+
+ window = 9 means, it averages the seasonal patterns to form the moving average of seasonal components
+
+--------------------------------------------------------------------------------------------------------
+
+Time series features
+
+(35) The feasts package includes functions for computing FEatures And Statistics from Time Series.
+
+-- mean, median, features(trips,quantile).
+
+-- All the autocorrelations of a series can be considered features of that series. 
+
+-- We can also compute autocorrelations of the changes in the series between periods.
+
+-- Another related approach is to compute seasonal differences of a series. Again, the
+autocorrelations of the seasonally differenced series may provide useful information
+
+-- feat_acf() function computes a selection of the autocorrelations
+
+-- For strongly trended data, the seasonally adjusted data should have much more variation than the remainder component.
+
+Trend Strength 𝐹𝑇 = max(0, 1 − 𝑉𝑎𝑟(𝑅𝑡)/𝑉𝑎𝑟(𝑇𝑡 + 𝑅𝑡))
+
+Seasnal strength 𝐹𝑆 = max(0, 1 − 𝑉 𝑎𝑟(𝑅𝑡)/𝑉𝑎𝑟(𝑆𝑡 + 𝑅𝑡))
+
+range 0 to 1
+
+Code:
+
+tourism |>
+features(Trips, feat_stl)
+
+-- testing of white noise- box_pierce and ljung box
+
+-- unitroot_kpss, unitroot_ndiffs, unitroot_nsdiffs 
+
+===========================================================================================================================
+
+(36)
+
+The process of producing forecasts can be split up into a few fundamental steps:
+
+(1) Preparing data
+(2) Data Visualisation
+(3) Specifying a model
+(4) Model estimation
+(5) Accuracy and performance evaluation
+(6) Producing forecasts
+
+fit <- gdppc |>
+model(trend_model=TSLM(GDP_per_capita ~ trend())) --mable(model table)
+
+trend means a+bt+c
+
+fit |> forecast(h="3 years") --fable (forecast table)
+
+A “fable” is a forecast table with point forecasts and distributions.
+
+(37)
+
+Benchmark models assumptions:
+
+Assumptions:
+• Residuals 𝑒𝑡 are uncorrelated. If they are not then then information left in residuals that should be
+used in computing forecasts.
+• 𝑒𝑡 have mean zero. If they don’t then forecasts are biased.
+Useful Properties (For distribution and prediction intervals):
+• 𝑒𝑡 have constant variance hence they are homoscedestic.
+• 𝑒𝑡 are normally distributed
+
+-- gg_tsresiduals(fit)
+ 
+
+(38) Checking white noise
+
+(1) Box-Pierce test
+
+𝑄 = 𝑇 Σ𝑘=1 to l  𝑟^2 
+
+Ljung-Box test
+
+𝑄∗ = 𝑇 (𝑇 + 2)Σ𝑘=1 to l (𝑇 − 𝑘)^{−1} 𝑟^2 has chi square distribution
+
+𝑙 = 10 for non-seasonal data, 𝑙 = 2𝑚 for seasonal data 
+
+augment(fit) |>
+features(.resid, ljung_box,lag=10)
+
+(39)
+
+The point forecast is the mean of this distribution.
+
+
+Most time series models produce normally distributed forecasts provided the residuals of the model
+are normally distributed. If you have done the transformation before the modelling then they will be
+normally distributed on the transform scale and when we back transform them, we get a transform
+normal distribution.
+
+(40)
+
+A common feature of prediction intervals is that they usually increase in length as the forecast horizon
+increases
+
+If you want to calculate the prediction interval then you can use the hilo() function.
+
+aus_production |>
+filter(!is.na(Bricks)) |>
+model(Seasonal_naive = SNAIVE(Bricks)) |>
+forecast(h= "5 years") |>
+hilo(level=95) |>
+mutate(lower = `95%`$lower, upper=`95%`$upper)
+
+(41)
+
+When a normal distribution for the residuals is an unreasonable assumption,
+one alternative is to use bootstrapping, which only assumes that the residuals are uncorrelated with constant variance
+
+(42) 
+
+accuracy(beer_fit) |>
+arrange(.model) |>
+select(.model,.type,RMSE,MAE,MAPE,MASE,RMSSE)
+
+(43) If we are interested in evaluating an interval then we can actually use these two quantile scores in this way:
+
+--Winkler Score
+
+google_fc |>
+filter(.model=="Naive", Date == "2016-01-04") |>
+accuracy(google_stock,list(winkler=winkler_score),level=80)
+
+
+-- Continuous Ranked Probability Score(CRPS)
+
+-- Quantile Score
+
+(44)
+
+Regression Models:
+
+fit_cons <- us_change %>%
+model(lm=TSLM(Consumption ~ Income))
+report(fit_cons)
+
+
+lm() mormally in R.
+
+Tell this in the project.
+
+(45) Regressing non-stationary time series can lead to spurious regressions. High 𝑅2 and high residual autocorrelation
+can be signs of spurious regression.
+
+(46) Fourier Series
+
+It is particularly useful when we got long periods or if we have got non-integer periods.(weekly data where 𝑚 = 52.18)
+Periodic seasonality can be handled using pairs of Fourier terms:
+
+
+(47)
+
+Rather than omit the outlier, a
+dummy variable removes its effect. In this case, the dummy variable takes value 1 for that observation and 0
+everywhere else
+
+(48)
+
+fit_beer <- recent_production |>
+model(TSLM(Beer ~ trend() + season()))
+report(fit_beer)
+
+Note that trend() and season() are not standard functions; they are “special” functions that work within the
+TSLM() model formulae.
+There is an average downward trend of -0.34 megalitres per quarter. On average, the second quarter has
+production of 34.7 megalitres lower than the first quarter, the third quarter has production of 17.8 megalitres
+lower than the first quarter, and the fourth quarter has production of 72.8 megalitres higher than the first
+quarter
+
+(49)
+
+
+AIC= −2 log(𝐿) + 2(𝑘 + 2)
+
+AIC penalizes terms more heavily that adjusted r2
+
+• Minimizing the AIC is asymptotically equivalent to minimizing MSE via leave-one-out cross-validation
+(for any linear regression). In regression context, leave one out cross-validation is the more interesting
+measure.
+
+
+For small values of 𝑇 , the AIC tends to select too many predictors.
+
+𝐴𝐼𝐶𝑐 = 𝐴𝐼𝐶 + 2(𝑘+2)(𝑘+3)/𝑇 −𝑘−3
+
+These days we use AICc statistic when we choose a model.
+
+𝐵𝐼𝐶 = −2 log(𝐿) + (𝑘 + 2)log(𝑇)
+
+glance(fit_consMR) |>
+select(adj_r_squared, CV, AIC, AICc, BIC)
+
+(50) predict number of swimmers that swim every day 𝑦 using number of ice-creams sold 𝑥.Here, 𝑦 is
+highly correlated with 𝑥 but 𝑥 is not causing 𝑦.
+
+----------------------------------------------------------------------------------------------------------------
+
+ Exponential smoothing
+
+(50) exponential
+smoothing methods are weighted averages of past observations, with the weights decaying exponentially as
+the observations get older.  In other words, the more recent the observation the higher the associated weigh
+
+(51) Forecast equation
+̂
+𝑦𝑇 +1|𝑇 = 𝛼𝑦𝑇 + 𝛼(1 − 𝛼)𝑦𝑇 −1 + 𝛼(1 − 𝛼)2𝑦𝑇 −2 + ...,
+
+̂𝑦𝑇 +1|𝑇 = Σ𝑇 −1𝑗=0 𝛼(1 − 𝛼)𝑗𝑦𝑇 −𝑗 + (1 − 𝛼)𝑇𝑙0 
+
+, we need to choose best values for 𝛼 and 𝑙0
+
+Choose optimal parameters by minimizing SSE.
+
+algeria_economy <- global_economy |>
+filter(Country=="Algeria")
+fit <- algeria_economy |>
+model(ANN=ETS(Exports ~ error("A")+trend("N")+season("N")))
+report(fit)
+
+
+--Holt’s linear trend method
+
+Holt (1957) extended simple exponential smoothing to allow the forecasting of data with a trend. This
+method involves a forecast equation and two smoothing equations (one for the level and one for the trend):
+Forecast equation ̂𝑦𝑡+ℎ|𝑡 = ℓ𝑡 + ℎ𝑏𝑡
+Level equation ℓ𝑡 = 𝛼𝑦𝑡 + (1 − 𝛼)(ℓ𝑡−1 + 𝑏𝑡−1)
+Trend equation : 𝑏𝑡 = 𝛽∗
+(ℓ𝑡 − ℓ𝑡−1) + (1 − 𝛽∗
+)𝑏𝑡−1,
+
+--Damped Trend Method
+
+In this method, the trend into the forecast period was not linear but actually flattening out. So, instead of
+going up at the same slope forever from the previous graph, in the damped trend version, it starts off at
+that slide but then it flattens out.
+Component Form
+̂𝑦𝑡+ℎ|𝑡 = 𝑙𝑡 + (𝜙 + 𝜙2 + ... + 𝜙ℎ
+)𝑏𝑡
+Where, 𝑙
+𝑡 = 𝛼𝑦𝑡 + (1 − 𝛼)(𝑙𝑡−1 + 𝜙𝑏𝑡−1)
+𝑏𝑡 = 𝛽∗
+(𝑙𝑡 − 𝑙𝑡−1) + (1 − 𝛽∗
+)𝜙𝑏𝑡−1
+
+
+--the possibilities for each component (or state) are:
+Error = 𝐴, 𝑀, Trend =𝑁, 𝐴, 𝐴𝑑 and Seasonal = 𝑁, 𝐴, 𝑀.
+
+-----------------------------------------------------------------------------------------------------------------------
+ARIMA
+
+
+-- Stationarity
+Definition
+If {𝑦𝑡} is a stationary time series then for all 𝑠, the distribution of (𝑦𝑡
+, ..., 𝑦𝑡+𝑠) does not depend on 𝑡.
+
+--
+
+So a stationary time series is one for which when we look at different parts of the time series, the joint
+probability density of those different parts of the time series will look almost identical.
+So, if we take 2 parts of the time series graph and make the histogram for both then they look almost identical.
+Hence data may not be the same but density or probability distribution will look very very similar
+
+--
+
+--A stationary time series is:
+• roughly horizontal (no trend)
+• constant variance (homosadestic)
+• no patterns predictable in long-term (no seasonality)
+• Transformation helps to stabilize the variance
+• For ARIMA modelling, we also need to stabilize the mean.
+
+-- Identifying non-stationary series
+• time plot.
+• The ACF of stationary data drops to zero relatively quickly
+• The ACF of non-stationary data decreases slowly
+• For non-stationary data, the value of 𝑟1
+(first order correlation) is often large and positive.
+
+Differencing
+• Differencing helps to stabilize the mean. In practice, it is almost never necessary to go beyond second order differences.
+
+Seasonal differencing
+• A seasonal difference is the difference between an observation and the corresponding observation from
+the previous year.
+𝑦′𝑡 = 𝑦𝑡 − 𝑦𝑡−�
+
+-- White Noise implies the Stationarity means a white noise process is always stationary but reverse is not true
+i.e. stationarity does not imply white noise.
+
+-- Unit root tests
+
+Statistical tests to determine the required order of differencing.
+
+• Augmented Dickey Fuller (ADF) Test: null hypothesis is that the data are non-stationary and nonseasonal.
+
+• Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test: null hypothesis is that the data are stationary and
+non-seasonal.
+
+-- 
+
+• A seasonal difference followed by a first difference can be written as: (1 − 𝐵)(1 − 𝐵𝑚)𝑦�
+
+Autoregressive model - AR(p) (Autoregressive model of order p):
+𝑦𝑡 = 𝑐 + 𝜙1𝑦𝑡−1 + 𝜙2𝑦𝑡−2 + ... + 𝜙𝑝𝑦𝑡−𝑝 + 𝜖�
+
+ This is a multiple regression with lagged values of 𝑦𝑡 as predictors
+
+--
+
+General condition for stationarity
+Complex roots of 1 − 𝜙1𝑧 − 𝜙2𝑧2 − ... − 𝜙𝑝𝑧𝑝 lie outside the unit circle on the complex plane
+
+--
+
+9.4 Moving average models
+This is the other half of the ARIMA model. It’s little bit like a regression but it’s against the past errors
+rather than past observed values.
+𝑦𝑡 = 𝑐 + 𝜖𝑡 + 𝜃1𝜖𝑡−1 + 𝜃2𝜖𝑡−2 + ... + 𝜃𝑞𝜖𝑡−𝑞;
+
+Where 𝜖𝑡 is white noise. This is a multiple regression with past errors as predictors. Don’t confuse this with
+moving average smoothing.
+
+It is possible to write any stationary AR(p) process as an MA(∞) process.
+
+-- Any MA(q) process can be written as an AR(∞) process if we impose some constraints on the MA
+parameters.
+• Then the MA model is called “invertible”
+
+-- General condition for invertability
+• Complex roots of 1 + 𝜃1
+𝑧 + 𝜃2𝑧2 + ... + 𝜃𝑞𝑧𝑞 lie outside the unit circle on the complex plane
+
+ARIMA Models
+• AR: Autoregressive (lagged observations as inputs)
+• I: integrated(opposite of differencing) (differencing to make series stationary)
+• MA: moving average (lagged errors as inputs)
+
+ARIMA(p,d,q) model
+
+A non-seasonal ARIMA model can be written as
+(1 − 𝜙1𝐵 − ⋯ − 𝜙𝑝𝐵𝑝)(1 − 𝐵)𝑑𝑦𝑡 = 𝑐 + (1 + 𝜃1𝐵 + ⋯ + 𝜃𝑞𝐵𝑞)𝜀𝑡, (9.3)
+
+ARIMA(1,1,1) model:
+
+(1 − 𝜙1𝐵)(1 − 𝐵)𝑦𝑡 = 𝑐 + (1 + 𝜃1𝐵)𝜖�
+
+where (1 − 𝜙1𝐵) represents AR(1).
+(1-B) represents first difference.
+(1 − 𝜃1𝐵) represents MA(1).
+
+-- ETS model can’t handle the cyclic behavior in the data, it can handle seasonality but in ARIMA model,
+we can handle both seasonality and cyclic behavior.
+
+-- Partial autocorrelations measure the relationship between 𝑦𝑡 and 𝑦𝑡−𝑘 when the effects of other time lags
+1,2,3,…k-1 are removed.
+
+augment(caf_fit) |>
+filter(.model == "search") |>
+features(.innov,ljung_box,lag=10,dof=3)
+
+-- 9.9 Seasonal ARIMA(SARIMA) models
+
+𝐴𝑅𝐼𝑀𝐴(1, 1, 1)(1, 1, 1)4 model (without constant):
+m=4 means it is quarterly data. If I write equation in backshift notation:
+(1 − 𝜙1𝐵)(1 − Φ1𝐵4)(1 − 𝐵)(1 − 𝐵4)𝑦𝑡 = (1 + 𝜃1𝐵)(1 + Θ1𝐵4)𝜖�
+
+
+Where
+(1 − 𝜙1𝐵) is non-seasonal AR(1)
+(1 − Φ1𝐵4) is seasonal AR(1)
+(1 − 𝐵) is non-seasonal difference
+(1 − 𝐵4) is seasonal difference
+(1 − 𝜃1𝐵) is non-seasonal MA(1)
+(1 − Θ1𝐵4) is seasonal MA(1)
+
+
+-- fit <- leisure |>
+model(
+arima012011 = ARIMA(Employed ~ pdq(0,1,2) + PDQ(0,1,1)),
+arima210011 = ARIMA(Employed ~ pdq(2,1,0) + PDQ(0,1,1)),
+auto = ARIMA(Employed, stepwise = FALSE, approx=FALSE)
+)
+
+-- Dynamic Regression Models
+
+We will allow the errors from a regression to contain autocorrelation. To emphasise this
+change in perspective, we will replace 𝜀𝑡 with 𝜂𝑡
+in the equation. The error series 𝜂𝑡
+is assumed to follow an
+ARIMA model. For example, if 𝜂𝑡
+follows an 𝐴𝑅𝐼𝑀𝐴(1, 1, 1) model, we can write
+𝑦𝑡 = 𝛽0 + 𝛽1𝑥1,𝑡 + ⋯ + 𝛽𝑘𝑥𝑘,𝑡 + 𝜂𝑡
+,
+(1 − 𝜙1𝐵)(1 − 𝐵)𝜂𝑡 = (1 + 𝜃1𝐵)𝜀𝑡
+where 𝜀𝑡
+is a white noise series.
+Here the second equation specifies the dynamics of regression errors
+Notice that the model has two error terms here — the error from the regression model, which we denote
+by 𝜂𝑡
+, and the error from the ARIMA model, which we denote by 𝜀𝑡
+. Only the ARIMA model errors are
+assumed to be white noise.
+
+-- Prophet Model
+
+originally for forecasting daily data with weekly and yearly
+seasonality, plus holiday effects.
+
+It works best with time series that have strong seasonality and several seasons of historical data.
+
+-- Prophet can be considered a nonlinear regression model (Chapter 7), of the form
+𝑦𝑡 = 𝑔(𝑡) + 𝑠(𝑡) + ℎ(𝑡) + 𝜀𝑡
+,
+𝑔(𝑡) describes a piecewise-linear trend (or “growth term”),
+𝑠(𝑡) describes the various seasonal patterns--
+The seasonal component consists of Fourier terms of the relevant periods,
+ℎ(𝑡) captures the holiday effects, and
+ 𝜀𝑡 is a white noise error term. 
+
+The model is estimated using a Bayesian approach to allow for automatic selection of the changepoints
+and other model characteristics.
+
+--  12.3 Vector autoregressions
+
+One limitation of the models that we have considered so far is that they impose a unidirectional relationship
+— the forecast variable is influenced by the predictor variables, but not vice versa. However, there are many
+cases where the reverse should also be allowed for — where all variables affect each other.
+
+In this framework,
+all variables are treated symmetrically. They are all modelled as if they all influence each other equally.
